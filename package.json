@@ -1,0 +1,19 @@
+{
+  "name": "vaultify",
+  "private": true,
+  "workspaces": [
+    "apps/mobile",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm --workspace @vaultify/mobile run start",
+    "typecheck": "npm --workspace @vaultify/mobile run typecheck"
+  },
+  "overrides": {
+    "expo": "54.0.34",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "5.6.0",
+    "react-native-screens": "4.16.0"
+  }
+}

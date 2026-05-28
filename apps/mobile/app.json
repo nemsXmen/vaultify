@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Vaultify",
+    "slug": "vaultify",
+    "scheme": "vaultify",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "android": {
+      "package": "com.vaultify.mobile"
+    },
+    "ios": {
+      "bundleIdentifier": "com.vaultify.mobile"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
