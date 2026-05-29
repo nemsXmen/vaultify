@@ -3,10 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Button, CyberIcon, Header, Panel, ScreenShell, colors, styles } from "@/src/ui/cyber-ui";
 import {
+  copyToClipboard,
   deleteActiveCredential,
   generateTotpPreview,
   getTotpSecondsRemaining,
-  notify,
   toggleCredentialFavorite,
   useVaultState
 } from "@/src/state/vault-state";
@@ -70,7 +70,7 @@ export default function CredentialDetailScreen() {
           <Text ellipsizeMode="middle" numberOfLines={1} style={[styles.itemTitle, styles.truncateText, styles.flex]}>
             {credential.username || "No username"}
           </Text>
-          <Button icon="copy-outline" label="Copy" tone="ghost" onPress={() => notify("Username copied")} />
+          <Button icon="copy-outline" label="Copy" tone="ghost" onPress={() => void copyToClipboard(credential.username, "Username")} />
         </View>
       </Panel>
 
@@ -96,7 +96,7 @@ export default function CredentialDetailScreen() {
             </View>
           </View>
           <Text style={styles.muted}>Refreshes from system time every 30 seconds.</Text>
-          <Button icon="copy-outline" label="Copy 2FA Code" tone="ghost" onPress={() => notify("2FA code copied")} />
+          <Button icon="copy-outline" label="Copy 2FA Code" tone="ghost" onPress={() => void copyToClipboard(totpCode.replace(" ", ""), "2FA code")} />
         </Panel>
       ) : (
         <Panel>
@@ -122,7 +122,7 @@ export default function CredentialDetailScreen() {
           <Button icon={credential.favorite ? "star" : "star-outline"} label={credential.favorite ? "Unfavorite" : "Favorite"} tone="ghost" onPress={() => toggleCredentialFavorite(credential.id)} />
         </View>
       </View>
-      <Button icon="copy-outline" label="Copy Password" onPress={() => notify("Password copied to clipboard")} />
+      <Button icon="copy-outline" label="Copy Password" onPress={() => void copyToClipboard(credential.password, "Password")} />
       <Button icon="trash-outline" label="Delete Credential" tone="danger" onPress={() => setConfirmDelete(true)} />
 
       {confirmDelete ? (

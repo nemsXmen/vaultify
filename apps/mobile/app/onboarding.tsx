@@ -44,7 +44,9 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        <Button icon="arrow-forward" label="Get Started" onPress={() => router.push("/create-master-password")} />
+        <View style={{ paddingBottom: 18 }}>
+          <Button icon="arrow-forward" label="Get Started" onPress={() => router.push("/create-master-password")} />
+        </View>
       </View>
     </ScreenShell>
   );

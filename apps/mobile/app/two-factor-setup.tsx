@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Button, CyberIcon, CyberInput, Header, Panel, QRMock, ScreenShell, colors, styles } from "@/src/ui/cyber-ui";
-import { generateTotpPreview, getTotpSecondsRemaining, notify } from "@/src/state/vault-state";
+import { copyToClipboard, generateTotpPreview, getTotpSecondsRemaining } from "@/src/state/vault-state";
 
 export default function TwoFactorSetupScreen() {
   const [mode, setMode] = useState<"scan" | "manual">("scan");
@@ -28,7 +28,9 @@ export default function TwoFactorSetupScreen() {
         <Text style={styles.label}>Secret Key</Text>
         <View style={styles.splitRow}>
           <Text style={styles.itemTitle}>{secret}</Text>
-          <CyberIcon name="copy-outline" />
+          <Pressable onPress={() => void copyToClipboard(secret, "2FA secret")}>
+            <CyberIcon name="copy-outline" />
+          </Pressable>
         </View>
       </Panel>
       <Panel>
@@ -40,7 +42,7 @@ export default function TwoFactorSetupScreen() {
           </View>
         </View>
       </Panel>
-      <Button icon="copy-outline" label="Copy Preview Code" onPress={() => notify("2FA code copied")} />
+      <Button icon="copy-outline" label="Copy Preview Code" onPress={() => void copyToClipboard(code.replace(" ", ""), "2FA code")} />
     </ScreenShell>
   );
 }

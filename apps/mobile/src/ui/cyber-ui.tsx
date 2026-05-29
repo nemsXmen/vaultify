@@ -5,7 +5,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -15,6 +14,7 @@ import {
   type TextStyle,
   type ViewStyle
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { beginCreateCredential, clearToast, useVaultState } from "@/src/state/vault-state";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -33,6 +33,9 @@ export const colors = {
   muted: "#93A39A"
 };
 
+const MIN_SCREEN_BOTTOM_PADDING = 24;
+const BOTTOM_NAV_CONTENT_OFFSET = 112;
+
 export function ScreenShell({
   active,
   children,
@@ -44,10 +47,26 @@ export function ScreenShell({
   readonly padded?: boolean;
   readonly scroll?: boolean;
 }) {
-  const content = <View style={[styles.content, padded ? styles.padded : null]}>{children}</View>;
+  const vault = useVaultState();
+  const insets = useSafeAreaInsets();
+  const navBottomOffset = Math.max(insets.bottom, 0);
+  const contentBottomPadding = active
+    ? BOTTOM_NAV_CONTENT_OFFSET + navBottomOffset
+    : Math.max(insets.bottom, MIN_SCREEN_BOTTOM_PADDING);
+  const content = (
+    <View style={[styles.content, padded ? styles.padded : null, { paddingBottom: contentBottomPadding }]}>
+      {children}
+    </View>
+  );
+
+  useEffect(() => {
+    if (active && vault.initialized && vault.hasVault && vault.locked) {
+      router.replace("/unlock");
+    }
+  }, [active, vault.hasVault, vault.initialized, vault.locked]);
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { paddingTop: Platform.OS === "android" ? insets.top : 0 }]}>
       <CyberBackground />
       {scroll ? (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -373,6 +392,8 @@ export function EmptyState({ action, text, title }: { readonly action: string; r
 }
 
 function BottomNav({ active }: { readonly active: "Home" | "Vault" | "2FA" | "Security" | "Settings" }) {
+  const insets = useSafeAreaInsets();
+  const bottomOffset = Math.max(insets.bottom, 0);
   const items: readonly { label: "Home" | "Vault" | "Security" | "Settings"; href: Href; icon: IconName }[] = [
     { label: "Home", href: "/home", icon: active === "Home" ? "home" : "home-outline" },
     { label: "Vault", href: "/vault", icon: active === "Vault" ? "lock-closed" : "lock-closed-outline" },
@@ -381,7 +402,7 @@ function BottomNav({ active }: { readonly active: "Home" | "Vault" | "2FA" | "Se
   ];
 
   return (
-    <View style={styles.bottomNav}>
+    <View style={[styles.bottomNav, { bottom: bottomOffset }]}>
       <View style={styles.navSide}>
         {items.slice(0, 2).map((item) => (
           <Pressable key={item.label} onPress={() => router.push(item.href)} style={styles.navItem}>
@@ -390,17 +411,19 @@ function BottomNav({ active }: { readonly active: "Home" | "Vault" | "2FA" | "Se
           </Pressable>
         ))}
       </View>
-      <Pressable
-        onPress={() => {
-          beginCreateCredential();
-          router.push({ pathname: "/credential-form", params: { mode: "create" } });
-        }}
-        style={styles.fab}
-      >
-        <View pointerEvents="none" style={styles.fabHighlight} />
-        <View pointerEvents="none" style={styles.fabCoreGlow} />
-        <Ionicons color="#021006" name="add" size={34} />
-      </Pressable>
+      <View pointerEvents="box-none" style={styles.fabDock}>
+        <Pressable
+          onPress={() => {
+            beginCreateCredential();
+            router.push({ pathname: "/credential-form", params: { mode: "create" } });
+          }}
+          style={styles.fab}
+        >
+          <View pointerEvents="none" style={styles.fabHighlight} />
+          <View pointerEvents="none" style={styles.fabCoreGlow} />
+          <Ionicons color="#021006" name="add" size={34} />
+        </Pressable>
+      </View>
       <View style={styles.navSide}>
         {items.slice(2).map((item) => (
           <Pressable key={item.label} onPress={() => router.push(item.href)} style={styles.navItem}>
@@ -417,8 +440,7 @@ export const styles = StyleSheet.create({
   root: {
     backgroundColor: colors.bg,
     flex: 1,
-    overflow: "hidden",
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0
+    overflow: "hidden"
   },
   scrollContent: {
     flexGrow: 1
@@ -865,6 +887,9 @@ export const styles = StyleSheet.create({
     height: 66,
     justifyContent: "space-between",
     paddingHorizontal: 22,
+    position: "absolute",
+    left: 0,
+    right: 0,
     shadowColor: colors.green,
     shadowOpacity: 0.25,
     shadowRadius: 18
@@ -895,18 +920,22 @@ export const styles = StyleSheet.create({
     borderColor: "rgba(158,255,167,0.9)",
     borderRadius: 31,
     borderWidth: 1,
-    bottom: 22,
     height: 62,
     justifyContent: "center",
-    left: "50%",
     overflow: "hidden",
-    position: "absolute",
     shadowColor: colors.green,
     shadowOffset: { width: 0, height: 9 },
     shadowOpacity: 0.95,
     shadowRadius: 22,
-    transform: [{ translateX: -31 }],
     width: 62
+  },
+  fabDock: {
+    alignItems: "center",
+    bottom: 22,
+    justifyContent: "center",
+    left: 0,
+    position: "absolute",
+    right: 0
   },
   fabHighlight: {
     backgroundColor: "rgba(255,255,255,0.42)",

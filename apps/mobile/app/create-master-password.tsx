@@ -1,14 +1,14 @@
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { Text, View } from "react-native";
-import { Button, CyberIcon, CyberInput, Header, Panel, ScreenShell, Toggle, colors, styles } from "@/src/ui/cyber-ui";
+import { Button, CyberIcon, Header, Panel, PasswordInput, ScreenShell, colors, styles } from "@/src/ui/cyber-ui";
 import { createVaultSession } from "@/src/state/vault-state";
 
 export default function CreateMasterPasswordScreen() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [visible, setVisible] = useState(false);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const strength = useMemo(() => {
     let score = 0;
     if (password.length >= 12) score += 1;
@@ -19,13 +19,18 @@ export default function CreateMasterPasswordScreen() {
   }, [password]);
   const valid = strength >= 3 && password === confirm;
 
-  function submit() {
+  async function submit() {
     if (!valid) {
       setError("Use a stronger password and make sure both fields match.");
       return;
     }
-    if (createVaultSession(password)) {
-      router.replace("/home");
+    setSaving(true);
+    try {
+      if (await createVaultSession(password)) {
+        router.replace("/home");
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -34,12 +39,8 @@ export default function CreateMasterPasswordScreen() {
       <Header title="Create Master Password" />
       <Text style={styles.subtitle}>This password unlocks your vault. It cannot be recovered.</Text>
       <View style={{ gap: 12 }}>
-        <CyberInput label="Master Password" onChangeText={setPassword} secureTextEntry={!visible} value={password} />
-        <CyberInput label="Confirm Password" onChangeText={setConfirm} secureTextEntry={!visible} value={confirm} />
-        <View style={styles.splitRow}>
-          <Text style={styles.label}>Show password</Text>
-          <Toggle active={visible} onPress={() => setVisible((next) => !next)} />
-        </View>
+        <PasswordInput label="Master Password" onChangeText={setPassword} value={password} />
+        <PasswordInput label="Confirm Password" onChangeText={setConfirm} value={confirm} />
       </View>
 
       <View style={{ gap: 8 }}>
@@ -65,7 +66,7 @@ export default function CreateMasterPasswordScreen() {
         ))}
       </Panel>
       {error ? <Text style={styles.dangerText}>{error}</Text> : null}
-      <Button disabled={!valid} label="Create Secure Vault" onPress={submit} />
+      <Button disabled={!valid || saving} label={saving ? "Encrypting..." : "Create Secure Vault"} onPress={submit} />
     </ScreenShell>
   );
 }

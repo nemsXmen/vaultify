@@ -19,7 +19,8 @@
       "bundleIdentifier": "com.vaultify.mobile"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-sqlite"
     ]
   }
 }

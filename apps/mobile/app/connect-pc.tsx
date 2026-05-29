@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Button, CyberIcon, Header, Panel, QRMock, ScreenShell, styles } from "@/src/ui/cyber-ui";
-import { notify } from "@/src/state/vault-state";
+import { copyToClipboard, notify } from "@/src/state/vault-state";
 
 export default function ConnectPcScreen() {
   const [sessionStarted, setSessionStarted] = useState(false);
@@ -23,7 +23,9 @@ export default function ConnectPcScreen() {
         <Text style={styles.label}>Wi-Fi Network</Text>
         <View style={styles.splitRow}>
           <Text style={styles.itemTitle}>Home_WIFI_5G</Text>
-          <CyberIcon name="copy-outline" />
+          <Pressable onPress={() => void copyToClipboard("Home_WIFI_5G", "Wi-Fi network")}>
+            <CyberIcon name="copy-outline" />
+          </Pressable>
         </View>
       </Panel>
       <Button

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Text, View } from "react-native";
 import { Button, CyberIcon, Header, Panel, ScreenShell, Toggle, colors, styles } from "@/src/ui/cyber-ui";
-import { notify } from "@/src/state/vault-state";
+import { copyToClipboard } from "@/src/state/vault-state";
 
 const pools = {
   uppercase: "ABCDEFGHJKLMNPQRSTUVWXYZ",
@@ -64,7 +64,7 @@ export default function PasswordGeneratorScreen() {
         </View>
       ))}
       <Button icon="refresh" label="Regenerate" tone="ghost" onPress={() => setSeed((next) => next + 7)} />
-      <Button icon="copy-outline" label="Copy Password" onPress={() => notify("Generated password copied")} />
+      <Button icon="copy-outline" label="Copy Password" onPress={() => void copyToClipboard(generated, "Generated password")} />
     </ScreenShell>
   );
 }
