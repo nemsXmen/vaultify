@@ -10,6 +10,13 @@ import {
   type VaultKeyMaterial
 } from "@/src/security/vault-crypto";
 import { clearBiometricKeyMaterial, readBiometricKeyMaterial, saveBiometricKeyMaterial } from "@/src/security/biometric-unlock";
+import {
+  createCodeVerifier,
+  createPairingCode,
+  parsePcTransferPackage,
+  serializeVaultDocument,
+  type PcTransferPackage
+} from "@/src/security/pc-transfer";
 import { hasStoredVault, readStoredVault, readStoredVaultExport, writeStoredVault, writeStoredVaultExport } from "@/src/storage/vault-storage";
 
 export type Category = "Login" | "Card" | "Note" | "2FA";
@@ -45,6 +52,14 @@ type VaultState = {
 };
 
 export type CredentialInput = Omit<VaultCredential, "id" | "updatedAt">;
+
+export type PcTransferSession = {
+  readonly code: string;
+  readonly exportedAt: string;
+  readonly expiresAt: string;
+  readonly itemCount: number;
+  readonly packageText: string;
+};
 
 type PersistedVaultPayload = {
   readonly version: 1;
@@ -466,8 +481,60 @@ export async function exportVault() {
   setState({ toast: state.credentials.length === 0 ? "Empty vault export copied" : "Encrypted export copied" });
 }
 
+export async function createPcTransferSession(): Promise<PcTransferSession | undefined> {
+  if (!state.locked) {
+    await persistCurrentVault();
+  }
+
+  const rawVault = await readStoredVaultExport();
+
+  if (!rawVault) {
+    setState({ toast: "No encrypted vault to share" });
+    return undefined;
+  }
+
+  try {
+    const encryptedVault = JSON.parse(rawVault) as EncryptedVaultDocument;
+    const code = await createPairingCode();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+    const pcPackage: PcTransferPackage = {
+      codeVerifier: await createCodeVerifier(code, rawVault),
+      encryptedVault,
+      exportedAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      itemCount: state.credentials.length,
+      kind: "vaultify.pc-transfer",
+      version: 1
+    };
+    const packageText = JSON.stringify(pcPackage);
+
+    setState({ toast: "PC transfer ready" });
+
+    return {
+      code,
+      exportedAt: pcPackage.exportedAt,
+      expiresAt: pcPackage.expiresAt,
+      itemCount: pcPackage.itemCount,
+      packageText
+    };
+  } catch {
+    setState({ toast: "Could not create PC transfer" });
+    return undefined;
+  }
+}
+
+export async function copyPcTransferPackage(packageText: string) {
+  await Clipboard.setStringAsync(packageText);
+  setState({ toast: "PC transfer package copied" });
+}
+
 export async function importVault() {
   const content = await Clipboard.getStringAsync();
+  return importVaultFromText(content);
+}
+
+export async function importVaultFromText(content: string) {
   if (!content.trim()) {
     setState({ toast: "Clipboard is empty" });
     return false;
@@ -493,6 +560,45 @@ export async function importVault() {
     return true;
   } catch {
     setState({ toast: "Clipboard is not a valid encrypted vault" });
+    return false;
+  }
+}
+
+export async function importPcTransferPackage(rawPackage: string, code: string) {
+  if (!rawPackage.trim() || !code.trim()) {
+    setState({ toast: "Transfer package and code are required" });
+    return false;
+  }
+
+  try {
+    const pcPackage = parsePcTransferPackage(rawPackage);
+
+    if (Date.parse(pcPackage.expiresAt) < Date.now()) {
+      setState({ toast: "PC transfer expired. Generate a new session." });
+      return false;
+    }
+
+    const rawVault = serializeVaultDocument(pcPackage.encryptedVault);
+    const verifier = await createCodeVerifier(code.replace(/\s+/g, ""), rawVault);
+
+    if (verifier !== pcPackage.codeVerifier) {
+      setState({ toast: "Pairing code does not match" });
+      return false;
+    }
+
+    await writeStoredVaultExport(rawVault);
+    keyMaterial = undefined;
+    setState({
+      activeCredentialId: undefined,
+      credentials: [],
+      hasVault: true,
+      initialized: true,
+      locked: true,
+      toast: "Encrypted vault received. Unlock it with the master password."
+    });
+    return true;
+  } catch {
+    setState({ toast: "Transfer package is not valid" });
     return false;
   }
 }

@@ -13,7 +13,12 @@
       "web"
     ],
     "android": {
-      "package": "com.vaultify.mobile"
+      "package": "com.vaultify.mobile",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE"
+      ]
     },
     "ios": {
       "bundleIdentifier": "com.vaultify.mobile"

@@ -66,6 +66,7 @@ export default function SettingsScreen() {
 
       <Panel>
         <Text style={styles.smallTitle}>Vault Data</Text>
+        <SettingAction icon="desktop-outline" label="Share with PC" value="Pair a browser receiver" onPress={() => router.push("/connect-pc")} />
         <SettingAction icon="download-outline" label="Export Vault" value={`${credentials.length} items`} onPress={() => setSheet("export")} />
         <SettingAction icon="cloud-upload-outline" label="Import Vault" value="Read from clipboard" onPress={() => setSheet("import")} />
         <SettingAction
