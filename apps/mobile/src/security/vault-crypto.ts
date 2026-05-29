@@ -47,10 +47,18 @@ export async function decryptVaultDocument(masterPassword: string, document: Enc
   }
 
   const key = await deriveKey(masterPassword, document.kdf);
-  const plaintextBytes = gcm(key, hexToBytes(document.nonce)).decrypt(hexToBytes(document.ciphertext));
-  const plaintext = bytesToUtf8(plaintextBytes);
+  const plaintext = decryptVaultDocumentWithKey({ key, kdf: document.kdf }, document);
 
   return { keyMaterial: { key, kdf: document.kdf }, plaintext };
+}
+
+export function decryptVaultDocumentWithKey(keyMaterial: VaultKeyMaterial, document: EncryptedVaultDocument) {
+  if (document.version !== 1 || document.cipher !== "aes-256-gcm" || document.kdf.name !== "scrypt") {
+    throw new Error("Unsupported vault format.");
+  }
+
+  const plaintextBytes = gcm(keyMaterial.key, hexToBytes(document.nonce)).decrypt(hexToBytes(document.ciphertext));
+  return bytesToUtf8(plaintextBytes);
 }
 
 export async function encryptVaultDocument(keyMaterial: VaultKeyMaterial, plaintext: string): Promise<EncryptedVaultDocument> {

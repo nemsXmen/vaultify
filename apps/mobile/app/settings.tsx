@@ -44,6 +44,10 @@ export default function SettingsScreen() {
     }
   }
 
+  function toggleBiometrics() {
+    void toggleBiometricUnlock();
+  }
+
   return (
     <ScreenShell active="Settings">
       <Header title="Settings" />
@@ -53,8 +57,8 @@ export default function SettingsScreen() {
         <SettingAction
           icon="finger-print-outline"
           label="Biometric Unlock"
-          right={<Toggle active={biometricEnabled} onPress={toggleBiometricUnlock} />}
-          onPress={toggleBiometricUnlock}
+          right={<Toggle active={biometricEnabled} onPress={toggleBiometrics} />}
+          onPress={toggleBiometrics}
         />
         <SettingAction icon="timer-outline" label="Auto-Lock Timer" value={autoLockTimer} onPress={() => setSheet("autoLock")} />
         <SettingAction icon="key-outline" label="Change Master Password" value="Requires current password" onPress={() => setSheet("masterPassword")} />

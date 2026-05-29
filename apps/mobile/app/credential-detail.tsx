@@ -77,7 +77,12 @@ export default function CredentialDetailScreen() {
       <Panel>
         <Text style={styles.label}>Password</Text>
         <View style={[styles.passwordField, { marginTop: 2 }]}>
-          <Text ellipsizeMode="tail" numberOfLines={1} style={[styles.passwordInput, { paddingTop: 15 }]}>
+          <Text
+            ellipsizeMode="tail"
+            numberOfLines={1}
+            onPress={() => void copyToClipboard(credential.password, "Password")}
+            style={[styles.passwordInput, { paddingTop: 15 }]}
+          >
             {visible ? credential.password || "No password" : "****************"}
           </Text>
           <Pressable onPress={() => setVisible((next) => !next)} style={styles.passwordEye}>

@@ -2,11 +2,12 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { Button, Logo, PasswordInput, ScreenShell, styles } from "@/src/ui/cyber-ui";
-import { notify, unlockVaultSession, useVaultState } from "@/src/state/vault-state";
+import { unlockVaultSession, unlockVaultSessionWithBiometrics, useVaultState } from "@/src/state/vault-state";
 
 export default function UnlockScreen() {
   const [password, setPassword] = useState("");
   const [unlocking, setUnlocking] = useState(false);
+  const [unlockingBiometric, setUnlockingBiometric] = useState(false);
   const vault = useVaultState();
 
   async function unlock() {
@@ -20,6 +21,17 @@ export default function UnlockScreen() {
     }
   }
 
+  async function unlockWithBiometrics() {
+    setUnlockingBiometric(true);
+    try {
+      if (await unlockVaultSessionWithBiometrics()) {
+        router.replace("/home");
+      }
+    } finally {
+      setUnlockingBiometric(false);
+    }
+  }
+
   return (
     <ScreenShell>
       <View style={{ alignItems: "center", flex: 1, gap: 20, justifyContent: "center" }}>
@@ -29,7 +41,15 @@ export default function UnlockScreen() {
         <View style={{ alignSelf: "stretch", gap: 12 }}>
           <PasswordInput label="Master Password" onChangeText={setPassword} value={password} />
           <Button disabled={unlocking || password.length === 0} icon="lock-open" label={unlocking ? "Decrypting..." : "Unlock"} onPress={unlock} />
-          <Button icon="finger-print" label="Unlock with Face ID" tone="ghost" onPress={() => notify("Biometric unlock will use the native secure keychain later")} />
+          {vault.biometricEnabled ? (
+            <Button
+              disabled={unlockingBiometric}
+              icon="finger-print"
+              label={unlockingBiometric ? "Checking biometrics..." : "Unlock with Biometrics"}
+              tone="ghost"
+              onPress={unlockWithBiometrics}
+            />
+          ) : null}
           <Text style={styles.dangerText}>Forgot master password?</Text>
           {vault.error ? <Text style={styles.dangerText}>{vault.error}</Text> : null}
         </View>

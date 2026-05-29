@@ -3,11 +3,13 @@ import * as OTPAuth from "otpauth";
 import { useSyncExternalStore } from "react";
 import {
   createEncryptedVaultDocument,
+  decryptVaultDocumentWithKey,
   decryptVaultDocument,
   encryptVaultDocument,
   type EncryptedVaultDocument,
   type VaultKeyMaterial
 } from "@/src/security/vault-crypto";
+import { clearBiometricKeyMaterial, readBiometricKeyMaterial, saveBiometricKeyMaterial } from "@/src/security/biometric-unlock";
 import { hasStoredVault, readStoredVault, readStoredVaultExport, writeStoredVault, writeStoredVaultExport } from "@/src/storage/vault-storage";
 
 export type Category = "Login" | "Card" | "Note" | "2FA";
@@ -184,6 +186,47 @@ export async function unlockVaultSession(masterPassword: string) {
   }
 }
 
+export async function unlockVaultSessionWithBiometrics() {
+  const document = await readStoredVault();
+
+  if (!document) {
+    setState({ error: "No encrypted vault found on this device.", hasVault: false, initialized: true });
+    return false;
+  }
+
+  try {
+    const biometricKeyMaterial = await readBiometricKeyMaterial();
+
+    if (!biometricKeyMaterial) {
+      setState({ error: "Biometric unlock is not enabled yet." });
+      return false;
+    }
+
+    const plaintext = decryptVaultDocumentWithKey(biometricKeyMaterial, document);
+    const payload = parsePayload(plaintext);
+    keyMaterial = biometricKeyMaterial;
+    setState({
+      activeCredentialId: payload.credentials[0]?.id,
+      autoLockTimer: payload.settings.autoLockTimer,
+      backupEnabled: payload.settings.backupEnabled,
+      biometricEnabled: payload.settings.biometricEnabled,
+      credentials: payload.credentials,
+      error: undefined,
+      hasVault: true,
+      initialized: true,
+      lastBackupAt: payload.settings.lastBackupAt,
+      locked: false,
+      theme: payload.settings.theme,
+      toast: "Vault unlocked"
+    });
+    return true;
+  } catch {
+    keyMaterial = undefined;
+    setState({ error: "Biometric unlock failed.", locked: true });
+    return false;
+  }
+}
+
 export function lockVaultSession() {
   keyMaterial = undefined;
   setState({ activeCredentialId: undefined, credentials: [], locked: true, toast: "Vault locked" });
@@ -349,10 +392,31 @@ export function getSecurityStats(credentials = state.credentials) {
   };
 }
 
-export function toggleBiometricUnlock() {
+export async function toggleBiometricUnlock() {
+  if (state.biometricEnabled) {
+    await clearBiometricKeyMaterial();
+    setPersistedState({
+      biometricEnabled: false,
+      toast: "Biometric unlock disabled"
+    });
+    return;
+  }
+
+  if (!keyMaterial || state.locked) {
+    setState({ toast: "Unlock with your master password before enabling biometrics" });
+    return;
+  }
+
+  const saved = await saveBiometricKeyMaterial(keyMaterial);
+
+  if (!saved) {
+    setState({ toast: "Biometric unlock is unavailable or was cancelled" });
+    return;
+  }
+
   setPersistedState({
-    biometricEnabled: !state.biometricEnabled,
-    toast: state.biometricEnabled ? "Biometric unlock disabled" : "Biometric unlock enabled"
+    biometricEnabled: true,
+    toast: "Biometric unlock enabled"
   });
 }
 
@@ -450,6 +514,9 @@ export async function changeMasterPassword(currentPassword: string, nextPassword
     const encrypted = await createEncryptedVaultDocument(nextPassword, JSON.stringify(createPayload()));
     keyMaterial = encrypted.keyMaterial;
     await writeStoredVault(encrypted.document);
+    if (state.biometricEnabled) {
+      await saveBiometricKeyMaterial(encrypted.keyMaterial);
+    }
     setState({ toast: "Master password updated" });
     return true;
   } catch {

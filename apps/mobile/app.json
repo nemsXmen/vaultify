@@ -20,7 +20,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Vaultify to use Face ID to unlock your vault."
+        }
+      ],
+      "expo-secure-store"
     ]
   }
 }
